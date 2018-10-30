@@ -28,4 +28,6 @@ public class RocketMQProperties {
     private Properties consumer;
 
     private String tagSuffix;
+
+    private String namesrvAddr;
 }

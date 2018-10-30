@@ -18,6 +18,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
+
 import java.util.Properties;
 
 /**
@@ -44,12 +46,25 @@ public class RocketMQAutoConfiguration {
         properties.put(PropertyKeyConst.ProducerId, propConfig.getProducer().getProperty("producerId"));
         properties.put(PropertyKeyConst.AccessKey, propConfig.getAccessKey());
         properties.put(PropertyKeyConst.SecretKey, propConfig.getSecretKey());
-        properties.put(PropertyKeyConst.ONSAddr, propConfig.getOnsAddr());
+        setProducerOtherProperties(properties);
         producerBean.setProperties(properties);
         producerBean.start();
         return producerBean;
     }
-    
+
+    private void setProducerOtherProperties(Properties properties) {
+        properties.put(PropertyKeyConst.SendMsgTimeoutMillis, propConfig.getProducer().getProperty("sendMsgTimeoutMillis", "3000"));
+
+        if (propConfig.getOnsAddr() != null) {
+            properties.put(PropertyKeyConst.ONSAddr, propConfig.getOnsAddr());
+        }
+        if (propConfig.getNamesrvAddr() != null) {
+            properties.put(PropertyKeyConst.NAMESRV_ADDR, propConfig.getNamesrvAddr());
+        }
+
+
+    }
+
     @Bean(name = "orderProducer",initMethod = "start", destroyMethod = "shutdown")
     @ConditionalOnMissingBean
     @ConditionalOnProperty(prefix = "aliyun.mq.producer",value = "enabled",havingValue = "true")
@@ -60,7 +75,8 @@ public class RocketMQAutoConfiguration {
         properties.put(PropertyKeyConst.ProducerId, propConfig.getProducer().getProperty("producerId"));
         properties.put(PropertyKeyConst.AccessKey, propConfig.getAccessKey());
         properties.put(PropertyKeyConst.SecretKey, propConfig.getSecretKey());
-        properties.put(PropertyKeyConst.ONSAddr, propConfig.getOnsAddr());
+        setProducerOtherProperties(properties);
+        properties.put(PropertyKeyConst.SuspendTimeMillis, propConfig.getProducer().getProperty("suspendTimeMillis", "3000"));
         producerBean.setProperties(properties);
         producerBean.start();
         return producerBean;
@@ -76,7 +92,8 @@ public class RocketMQAutoConfiguration {
         properties.put(PropertyKeyConst.ProducerId, propConfig.getProducer().getProperty("producerId"));
         properties.put(PropertyKeyConst.AccessKey, propConfig.getAccessKey());
         properties.put(PropertyKeyConst.SecretKey, propConfig.getSecretKey());
-        properties.put(PropertyKeyConst.ONSAddr, propConfig.getOnsAddr());
+        setProducerOtherProperties(properties);
+        properties.put(PropertyKeyConst.CheckImmunityTimeInSeconds, propConfig.getProducer().getProperty("checkImmunityTimeInSeconds", "30"));
         producerBean.setProperties(properties);
         //LocalTransactionCheckerImpl必须在start方法调用前设置
         producerBean.setLocalTransactionChecker(new LocalTransactionCheckerImpl(null));
@@ -95,7 +112,16 @@ public class RocketMQAutoConfiguration {
         properties.setProperty(PropertyKeyConst.AccessKey, propConfig.getAccessKey());
         properties.setProperty(PropertyKeyConst.SecretKey, propConfig.getSecretKey());
         properties.setProperty(PropertyKeyConst.ONSAddr, propConfig.getOnsAddr());
+        setConsumerOtherProperties(properties);
         return  new MqConsumer(properties);
+    }
+
+    private void setConsumerOtherProperties(Properties properties) {
+        properties.setProperty(PropertyKeyConst.MessageModel, propConfig.getConsumer().getProperty("messageModel", "CLUSTERING"));
+        properties.setProperty(PropertyKeyConst.ConsumeThreadNums, propConfig.getConsumer().getProperty("consumeThreadNums", "4"));
+        properties.setProperty(PropertyKeyConst.MaxReconsumeTimes, propConfig.getConsumer().getProperty("maxReconsumeTimes", "16"));
+        properties.setProperty(PropertyKeyConst.ConsumeTimeout, propConfig.getConsumer().getProperty("consumeTimeout", "15"));
+        properties.setProperty(PropertyKeyConst.ConsumeMessageBatchMaxSize, propConfig.getConsumer().getProperty("consumeMessageBatchMaxSize", "1"));
     }
 
     @Bean
