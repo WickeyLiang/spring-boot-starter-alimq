@@ -1,6 +1,8 @@
 package cn.knowbox.book.alimq;
 
+import cn.knowbox.book.alimq.consumer.MqBatchConsumer;
 import cn.knowbox.book.alimq.consumer.MqConsumer;
+import cn.knowbox.book.alimq.consumer.MqOrderConsumer;
 import cn.knowbox.book.alimq.producer.LocalTransactionCheckerImpl;
 import cn.knowbox.book.alimq.producer.OrderMessageTemplate;
 import cn.knowbox.book.alimq.producer.RocketMQTemplate;
@@ -111,17 +113,50 @@ public class RocketMQAutoConfiguration {
         properties.setProperty(PropertyKeyConst.ConsumerId, propConfig.getConsumer().getProperty("consumerId"));
         properties.setProperty(PropertyKeyConst.AccessKey, propConfig.getAccessKey());
         properties.setProperty(PropertyKeyConst.SecretKey, propConfig.getSecretKey());
-        properties.setProperty(PropertyKeyConst.ONSAddr, propConfig.getOnsAddr());
         setConsumerOtherProperties(properties);
         return  new MqConsumer(properties);
     }
 
+    @Bean(initMethod="start", destroyMethod = "shutdown")
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "aliyun.mq.consumer",value = "enabled",havingValue = "true")
+    public MqOrderConsumer mqOrderConsumer(){
+        Properties properties = new Properties();
+        log.info("执行consumer初始化……");
+        properties.setProperty(PropertyKeyConst.ConsumerId, propConfig.getConsumer().getProperty("consumerId"));
+        properties.setProperty(PropertyKeyConst.AccessKey, propConfig.getAccessKey());
+        properties.setProperty(PropertyKeyConst.SecretKey, propConfig.getSecretKey());
+        setConsumerOtherProperties(properties);
+
+        return  new MqOrderConsumer(properties);
+    }
+
+    @Bean(initMethod="start", destroyMethod = "shutdown")
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = "aliyun.mq.consumer",value = "enabled",havingValue = "true")
+    public MqBatchConsumer mqBatchConsumer(){
+        Properties properties = new Properties();
+        log.info("执行consumer初始化……");
+        properties.setProperty(PropertyKeyConst.ConsumerId, propConfig.getConsumer().getProperty("consumerId"));
+        properties.setProperty(PropertyKeyConst.AccessKey, propConfig.getAccessKey());
+        properties.setProperty(PropertyKeyConst.SecretKey, propConfig.getSecretKey());
+        setConsumerOtherProperties(properties);
+        properties.setProperty(PropertyKeyConst.ConsumeMessageBatchMaxSize, propConfig.getConsumer().getProperty("consumeMessageBatchMaxSize", "1"));
+
+        return  new MqBatchConsumer(properties);
+    }
+
     private void setConsumerOtherProperties(Properties properties) {
+        if (propConfig.getOnsAddr() != null) {
+            properties.put(PropertyKeyConst.ONSAddr, propConfig.getOnsAddr());
+        }
+        if (propConfig.getNamesrvAddr() != null) {
+            properties.put(PropertyKeyConst.NAMESRV_ADDR, propConfig.getNamesrvAddr());
+        }
         properties.setProperty(PropertyKeyConst.MessageModel, propConfig.getConsumer().getProperty("messageModel", "CLUSTERING"));
         properties.setProperty(PropertyKeyConst.ConsumeThreadNums, propConfig.getConsumer().getProperty("consumeThreadNums", "4"));
         properties.setProperty(PropertyKeyConst.MaxReconsumeTimes, propConfig.getConsumer().getProperty("maxReconsumeTimes", "16"));
         properties.setProperty(PropertyKeyConst.ConsumeTimeout, propConfig.getConsumer().getProperty("consumeTimeout", "15"));
-        properties.setProperty(PropertyKeyConst.ConsumeMessageBatchMaxSize, propConfig.getConsumer().getProperty("consumeMessageBatchMaxSize", "1"));
     }
 
     @Bean
